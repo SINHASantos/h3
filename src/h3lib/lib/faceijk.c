@@ -32,8 +32,9 @@
 #include "latLng.h"
 #include "vec3d.h"
 
-/** square root of 7 */
+/** square root of 7 and inverse square root of 7 */
 #define M_SQRT7 2.6457513110645905905016157536392604257102
+#define M_RSQRT7 0.37796447300922722721451653623418006081576
 
 /** @brief icosahedron face centers in lat/lng radians */
 const LatLng faceCenterGeo[NUM_ICOSA_FACES] = {
@@ -392,7 +393,7 @@ void _geoToHex2d(const LatLng *g, int res, int *face, Vec2d *v) {
     _geoToClosestFace(g, face, &sqd);
 
     // cos(r) = 1 - 2 * sin^2(r/2) = 1 - 2 * (sqd / 4) = 1 - sqd/2
-    double r = acos(1 - sqd / 2);
+    double r = acos(1 - sqd * 0.5);
 
     if (r < EPSILON) {
         v->x = v->y = 0.0;
@@ -412,7 +413,7 @@ void _geoToHex2d(const LatLng *g, int res, int *face, Vec2d *v) {
     r = tan(r);
 
     // scale for current resolution length u
-    r /= RES0_U_GNOMONIC;
+    r *= INV_RES0_U_GNOMONIC;
     for (int i = 0; i < res; i++) r *= M_SQRT7;
 
     // we now have (r, theta) in hex2d with theta ccw from x-axes
@@ -446,12 +447,12 @@ void _hex2dToGeo(const Vec2d *v, int face, int res, int substrate, LatLng *g) {
     double theta = atan2(v->y, v->x);
 
     // scale for current resolution length u
-    for (int i = 0; i < res; i++) r /= M_SQRT7;
+    for (int i = 0; i < res; i++) r *= M_RSQRT7;
 
     // scale accordingly if this is a substrate grid
     if (substrate) {
-        r /= 3.0;
-        if (isResolutionClassIII(res)) r /= M_SQRT7;
+        r *= M_ONETHIRD;
+        if (isResolutionClassIII(res)) r *= M_RSQRT7;
     }
 
     r *= RES0_U_GNOMONIC;

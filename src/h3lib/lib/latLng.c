@@ -169,8 +169,8 @@ double normalizeLng(const double lng,
  * @return    the great circle distance in radians between a and b
  */
 double H3_EXPORT(greatCircleDistanceRads)(const LatLng *a, const LatLng *b) {
-    double sinLat = sin((b->lat - a->lat) / 2.0);
-    double sinLng = sin((b->lng - a->lng) / 2.0);
+    double sinLat = sin((b->lat - a->lat) * 0.5);
+    double sinLng = sin((b->lng - a->lng) * 0.5);
 
     double A = sinLat * sinLat + cos(a->lat) * cos(b->lat) * sinLng * sinLng;
 
@@ -179,6 +179,11 @@ double H3_EXPORT(greatCircleDistanceRads)(const LatLng *a, const LatLng *b) {
 
 /**
  * The great circle distance in kilometers between two spherical coordinates.
+ *
+ * @param  a  the first lat/lng pair (in radians)
+ * @param  b  the second lat/lng pair (in radians)
+ *
+ * @return    the great circle distance in kilometers between a and b
  */
 double H3_EXPORT(greatCircleDistanceKm)(const LatLng *a, const LatLng *b) {
     return H3_EXPORT(greatCircleDistanceRads)(a, b) * EARTH_RADIUS_KM;
@@ -186,6 +191,11 @@ double H3_EXPORT(greatCircleDistanceKm)(const LatLng *a, const LatLng *b) {
 
 /**
  * The great circle distance in meters between two spherical coordinates.
+ *
+ * @param  a  the first lat/lng pair (in radians)
+ * @param  b  the second lat/lng pair (in radians)
+ *
+ * @return    the great circle distance in meters between a and b
  */
 double H3_EXPORT(greatCircleDistanceM)(const LatLng *a, const LatLng *b) {
     return H3_EXPORT(greatCircleDistanceKm)(a, b) * 1000;
@@ -258,9 +268,10 @@ void _geoAzDistanceRads(const LatLng *p1, double az, double distance,
             p2->lat = -M_PI_2;
             p2->lng = 0.0;
         } else {
-            sinlng = sin(az) * sin(distance) / cos(p2->lat);
+            double invcosp2lat = 1.0 / cos(p2->lat);
+            sinlng = sin(az) * sin(distance) * invcosp2lat;
             coslng = (cos(distance) - sin(p1->lat) * sin(p2->lat)) /
-                     cos(p1->lat) / cos(p2->lat);
+                     cos(p1->lat) * invcosp2lat;
             if (sinlng > 1.0) sinlng = 1.0;
             if (sinlng < -1.0) sinlng = -1.0;
             if (coslng > 1.0) coslng = 1.0;
@@ -355,12 +366,12 @@ H3Error H3_EXPORT(getNumCells)(int res, int64_t *out) {
  * @return     area in radians^2 of triangle on unit sphere
  */
 double triangleEdgeLengthsToArea(double a, double b, double c) {
-    double s = (a + b + c) / 2;
+    double s = (a + b + c) * 0.5;
 
-    a = (s - a) / 2;
-    b = (s - b) / 2;
-    c = (s - c) / 2;
-    s = s / 2;
+    a = (s - a) * 0.5;
+    b = (s - b) * 0.5;
+    c = (s - c) * 0.5;
+    s = s * 0.5;
 
     return 4 * atan(sqrt(tan(s) * tan(a) * tan(b) * tan(c)));
 }
@@ -418,6 +429,10 @@ H3Error H3_EXPORT(cellAreaRads2)(H3Index cell, double *out) {
 
 /**
  * Area of H3 cell in kilometers^2.
+ *
+ * @param   cell  H3 cell
+ * @param    out  cell area in kilometers^2
+ * @return        E_SUCCESS on success, or an error code otherwise
  */
 H3Error H3_EXPORT(cellAreaKm2)(H3Index cell, double *out) {
     H3Error err = H3_EXPORT(cellAreaRads2)(cell, out);
@@ -429,6 +444,10 @@ H3Error H3_EXPORT(cellAreaKm2)(H3Index cell, double *out) {
 
 /**
  * Area of H3 cell in meters^2.
+ *
+ * @param   cell  H3 cell
+ * @param    out  cell area in meters^2
+ * @return        E_SUCCESS on success, or an error code otherwise
  */
 H3Error H3_EXPORT(cellAreaM2)(H3Index cell, double *out) {
     H3Error err = H3_EXPORT(cellAreaKm2)(cell, out);
@@ -442,8 +461,8 @@ H3Error H3_EXPORT(cellAreaM2)(H3Index cell, double *out) {
  * Length of a directed edge in radians.
  *
  * @param   edge  H3 directed edge
- *
- * @return        length in radians
+ * @param    length  length in radians
+ * @return        E_SUCCESS on success, or an error code otherwise
  */
 H3Error H3_EXPORT(edgeLengthRads)(H3Index edge, double *length) {
     CellBoundary cb;
@@ -464,6 +483,10 @@ H3Error H3_EXPORT(edgeLengthRads)(H3Index edge, double *length) {
 
 /**
  * Length of a directed edge in kilometers.
+ *
+ * @param   edge  H3 directed edge
+ * @param    length  length in kilometers
+ * @return        E_SUCCESS on success, or an error code otherwise
  */
 H3Error H3_EXPORT(edgeLengthKm)(H3Index edge, double *length) {
     H3Error err = H3_EXPORT(edgeLengthRads)(edge, length);
@@ -473,6 +496,10 @@ H3Error H3_EXPORT(edgeLengthKm)(H3Index edge, double *length) {
 
 /**
  * Length of a directed edge in meters.
+ *
+ * @param   edge  H3 directed edge
+ * @param    length  length in meters
+ * @return        E_SUCCESS on success, or an error code otherwise
  */
 H3Error H3_EXPORT(edgeLengthM)(H3Index edge, double *length) {
     H3Error err = H3_EXPORT(edgeLengthKm)(edge, length);

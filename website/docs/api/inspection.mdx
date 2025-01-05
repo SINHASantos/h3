@@ -12,27 +12,24 @@ These functions provide metadata about an H3 index, such as its resolution or ba
 
 ## getResolution
 
+Returns the resolution of the index.
+(Works for cells, edges, and vertexes.)
+
 <Tabs
   groupId="language"
   defaultValue="c"
   values={[
     {label: 'C', value: 'c'},
-    {label: 'Python', value: 'python'},
     {label: 'Java', value: 'java'},
     {label: 'JavaScript (Live)', value: 'javascript'},
+    {label: 'Python', value: 'python'},
+    {label: 'Shell', value: 'shell'},
   ]
 }>
 <TabItem value="c">
 
 ```c
 int getResolution(H3Index h);
-```
-
-</TabItem>
-<TabItem value="python">
-
-```py
-h3.get_resolution(h)
 ```
 
 </TabItem>
@@ -58,33 +55,54 @@ function example() {
 ```
 
 </TabItem>
+<TabItem value="python">
+
+```py
+h3.get_resolution(h)
+```
+
+</TabItem>
+<TabItem value="shell">
+
+```sh
+$ h3 getResolution --help
+h3: Extracts the resolution (0 - 15) from the H3 cell
+H3 4.1.0
+
+	getResolution	Extracts the resolution (0 - 15) from the H3 cell
+	-h, --help	Show this help message.
+	-c, --cell <index>	Required. H3 Cell
+```
+
+```bash
+$ h3 getResolution -c 85283473fffffff
+5
+```
+
+</TabItem>
 </Tabs>
 
-Returns the resolution of the index.
 
 ## getBaseCellNumber
+
+Returns the base cell number of the index.
+(Works for cells, edges, and vertexes.)
 
 <Tabs
   groupId="language"
   defaultValue="c"
   values={[
     {label: 'C', value: 'c'},
-    {label: 'Python', value: 'python'},
     {label: 'Java', value: 'java'},
     {label: 'JavaScript (Live)', value: 'javascript'},
+    {label: 'Python', value: 'python'},
+    {label: 'Shell', value: 'shell'},
   ]
 }>
 <TabItem value="c">
 
 ```c
 int getBaseCellNumber(H3Index h);
-```
-
-</TabItem>
-<TabItem value="python">
-
-```py
-h3.get_base_cell_number(h)
 ```
 
 </TabItem>
@@ -110,20 +128,46 @@ function example() {
 ```
 
 </TabItem>
+<TabItem value="python">
+
+```py
+h3.get_base_cell_number(h)
+```
+
+</TabItem>
+<TabItem value="shell">
+
+```sh
+$ h3 getBaseCellNumber --help
+h3: Extracts the base cell number (0 - 121) from the H3 cell
+H3 4.1.0
+
+	getBaseCellNumber	Extracts the base cell number (0 - 121) from the H3 cell
+	-h, --help	Show this help message.
+	-c, --cell <index>	Required. H3 Cell
+```
+
+```bash
+$ h3 getBaseCellNumber -c 85283473fffffff
+20
+```
+
+</TabItem>
 </Tabs>
 
-Returns the base cell number of the index.
-
 ## stringToH3
+
+Converts the string representation to `H3Index` (`uint64_t`) representation.
 
 <Tabs
   groupId="language"
   defaultValue="c"
   values={[
     {label: 'C', value: 'c'},
-    {label: 'Python', value: 'python'},
     {label: 'Java', value: 'java'},
     {label: 'JavaScript (Live)', value: 'javascript'},
+    {label: 'Python', value: 'python'},
+    {label: 'Shell', value: 'shell'},
   ]
 }>
 <TabItem value="c">
@@ -132,12 +176,7 @@ Returns the base cell number of the index.
 H3Error stringToH3(const char *str, H3Index *out);
 ```
 
-</TabItem>
-<TabItem value="python">
-
-```py
-h3.string_to_h3(h)
-```
+Returns 0 (`E_SUCCESS`) on success.
 
 </TabItem>
 <TabItem value="java">
@@ -149,25 +188,45 @@ long stringToH3(String h3Address);
 </TabItem>
 <TabItem value="javascript">
 
+:::note
+
 The H3 JavaScript binding supports only the string representation of an H3 index.
+
+:::
+
+</TabItem>
+<TabItem value="python">
+
+```py
+h3.str_to_int(h)
+```
+
+</TabItem>
+<TabItem value="shell">
+
+:::note
+
+The H3 CLI supports only the string representation of an H3 index.
+
+:::
+
 
 </TabItem>
 </Tabs>
 
-Converts the string representation to `H3Index` (`uint64_t`) representation.
-
-Returns 0 (`E_SUCCESS`) on success.
-
 ## h3ToString
+
+Converts the `H3Index` representation of the index to the string representation.
 
 <Tabs
   groupId="language"
   defaultValue="c"
   values={[
     {label: 'C', value: 'c'},
-    {label: 'Python', value: 'python'},
     {label: 'Java', value: 'java'},
     {label: 'JavaScript (Live)', value: 'javascript'},
+    {label: 'Python', value: 'python'},
+    {label: 'Shell', value: 'shell'},
   ]
 }>
 <TabItem value="c">
@@ -176,12 +235,8 @@ Returns 0 (`E_SUCCESS`) on success.
 H3Error h3ToString(H3Index h, char *str, size_t sz);
 ```
 
-</TabItem>
-<TabItem value="python">
-
-```py
-h3.h3_to_string(h)
-```
+`str` must be at least of length 17.
+Returns 0 (`E_SUCCESS`) on success.
 
 </TabItem>
 <TabItem value="java">
@@ -193,38 +248,52 @@ String h3ToString(long h3);
 </TabItem>
 <TabItem value="javascript">
 
+:::note
+
 The H3 JavaScript binding supports only the string representation of an H3 index.
+
+:::
+
+</TabItem>
+<TabItem value="python">
+
+```py
+h3.int_to_str(h)
+```
+
+</TabItem>
+<TabItem value="shell">
+
+:::note
+
+The H3 CLI supports only the string representation of an H3 index.
+
+:::
 
 </TabItem>
 </Tabs>
 
-Converts the `H3Index` representation of the index to the string representation. `str` must be at least of length 17.
 
-Returns 0 (`E_SUCCESS`) on success.
 
 ## isValidCell
+
+Returns non-zero if this is a valid H3 cell index.
 
 <Tabs
   groupId="language"
   defaultValue="c"
   values={[
     {label: 'C', value: 'c'},
-    {label: 'Python', value: 'python'},
     {label: 'Java', value: 'java'},
     {label: 'JavaScript (Live)', value: 'javascript'},
+    {label: 'Python', value: 'python'},
+    {label: 'Shell', value: 'shell'},
   ]
 }>
 <TabItem value="c">
 
 ```c
 int isValidCell(H3Index h);
-```
-
-</TabItem>
-<TabItem value="python">
-
-```py
-h3.is_valid_cell(h)
 ```
 
 </TabItem>
@@ -250,33 +319,54 @@ function example() {
 ```
 
 </TabItem>
+<TabItem value="python">
+
+```py
+h3.is_valid_cell(h)
+```
+
+</TabItem>
+<TabItem value="shell">
+
+```sh
+$ h3 isValidCell --help
+h3: Checks if the provided H3 index is actually valid
+H3 4.1.0
+
+	isValidCell	Checks if the provided H3 index is actually valid
+	-h, --help	Show this help message.
+	-c, --cell <index>	Required. H3 Cell
+	-f, --format <FMT>	'json' for true or false, 'numeric' for 1 or 0 (Default: json)
+```
+
+```bash
+$ h3 isValidCell -c 85283473fffffff
+true
+```
+
+</TabItem>
 </Tabs>
 
-Returns non-zero if this is a valid H3 cell index.
 
 ## isResClassIII
+
+Returns non-zero if this index has a resolution with Class III orientation.
 
 <Tabs
   groupId="language"
   defaultValue="c"
   values={[
     {label: 'C', value: 'c'},
-    {label: 'Python', value: 'python'},
     {label: 'Java', value: 'java'},
     {label: 'JavaScript (Live)', value: 'javascript'},
+    {label: 'Python', value: 'python'},
+    {label: 'Shell', value: 'shell'},
   ]
 }>
 <TabItem value="c">
 
 ```c
 int isResClassIII(H3Index h);
-```
-
-</TabItem>
-<TabItem value="python">
-
-```py
-h3.is_res_class_III(h)
 ```
 
 </TabItem>
@@ -302,33 +392,54 @@ function example() {
 ```
 
 </TabItem>
+<TabItem value="python">
+
+```py
+h3.is_res_class_III(h)
+```
+
+</TabItem>
+<TabItem value="shell">
+
+```sh
+$ h3 isResClassIII --help
+h3: Checks if the provided H3 index has a Class III orientation
+H3 4.1.0
+
+	isResClassIII	Checks if the provided H3 index has a Class III orientation
+	-h, --help	Show this help message.
+	-c, --cell <index>	Required. H3 Cell
+	-f, --format <FMT>	'json' for true or false, 'numeric' for 1 or 0 (Default: json)
+```
+
+```bash
+$ h3 isResClassIII -c 85283473fffffff
+true
+```
+
+</TabItem>
 </Tabs>
 
-Returns non-zero if this index has a resolution with Class III orientation.
 
 ## isPentagon
+
+Returns non-zero if this index represents a pentagonal cell.
 
 <Tabs
   groupId="language"
   defaultValue="c"
   values={[
     {label: 'C', value: 'c'},
-    {label: 'Python', value: 'python'},
     {label: 'Java', value: 'java'},
     {label: 'JavaScript (Live)', value: 'javascript'},
+    {label: 'Python', value: 'python'},
+    {label: 'Shell', value: 'shell'},
   ]
 }>
 <TabItem value="c">
 
 ```c
 int isPentagon(H3Index h);
-```
-
-</TabItem>
-<TabItem value="python">
-
-```py
-h3.is_pentagon(h)
 ```
 
 </TabItem>
@@ -354,20 +465,49 @@ function example() {
 ```
 
 </TabItem>
+<TabItem value="python">
+
+```py
+h3.is_pentagon(h)
+```
+
+</TabItem>
+<TabItem value="shell">
+
+```sh
+$ h3 isPentagon --help
+h3: Checks if the provided H3 index is a pentagon instead of a hexagon
+H3 4.1.0
+
+	isPentagon	Checks if the provided H3 index is a pentagon instead of a hexagon
+	-h, --help	Show this help message.
+	-c, --cell <index>	Required. H3 Cell
+	-f, --format <FMT>	'json' for true or false, 'numeric' for 1 or 0 (Default: json)
+```
+
+```bash
+$ h3 isPentagon -c 85283473fffffff
+false
+```
+
+</TabItem>
 </Tabs>
 
-Returns non-zero if this index represents a pentagonal cell.
 
 ## getIcosahedronFaces
+
+Find all icosahedron faces intersected by a given H3 cell.
+Faces are represented as integers from 0-19, inclusive.
 
 <Tabs
   groupId="language"
   defaultValue="c"
   values={[
     {label: 'C', value: 'c'},
-    {label: 'Python', value: 'python'},
     {label: 'Java', value: 'java'},
     {label: 'JavaScript (Live)', value: 'javascript'},
+    {label: 'Python', value: 'python'},
+    {label: 'Shell', value: 'shell'},
   ]
 }>
 <TabItem value="c">
@@ -376,12 +516,11 @@ Returns non-zero if this index represents a pentagonal cell.
 H3Error getIcosahedronFaces(H3Index h, int* out);
 ```
 
-</TabItem>
-<TabItem value="python">
+Face values are placed in the array `out`.
+`out` must be at least length of `maxFaceCount(h)`.
+The array is sparse, and empty (no intersection) array values are represented by -1.
 
-```py
-h3.get_icosahedron_faces(h)
-```
+Returns 0 (`E_SUCCESS`) on success.
 
 </TabItem>
 <TabItem value="java">
@@ -406,24 +545,46 @@ function example() {
 ```
 
 </TabItem>
+<TabItem value="python">
+
+```py
+h3.get_icosahedron_faces(h)
+```
+
+</TabItem>
+<TabItem value="shell">
+
+```sh
+$ h3 getIcosahedronFaces --help
+h3: Returns the icosahedron face numbers (0 - 19) that the H3 index intersects
+H3 4.1.0
+
+	getIcosahedronFaces	Returns the icosahedron face numbers (0 - 19) that the H3 index intersects
+	-h, --help	Show this help message.
+	-c, --cell <index>	Required. H3 Cell
+	-f, --format <FMT>	'json' for [faceNum, ...], 'newline' for faceNum\n... (Default: json)
+```
+
+```bash
+$ h3 getIcosahedronFaces -c 85283473fffffff
+[7]
+```
+</TabItem>
 </Tabs>
 
-Find all icosahedron faces intersected by a given H3 index and places them in the array `out`. `out` must be at least length of `maxFaceCount(h)`.
-
-Faces are represented as integers from 0-19, inclusive. The array is sparse, and empty (no intersection) array values are represented by -1.
-
-Returns 0 (`E_SUCCESS`) on success.
-
 ## maxFaceCount
+
+Returns the maximum number of icosahedron faces the given H3 index may intersect.
 
 <Tabs
   groupId="language"
   defaultValue="c"
   values={[
     {label: 'C', value: 'c'},
-    {label: 'Python', value: 'python'},
     {label: 'Java', value: 'java'},
     {label: 'JavaScript (Live)', value: 'javascript'},
+    {label: 'Python', value: 'python'},
+    {label: 'Shell', value: 'shell'},
   ]
 }>
 <TabItem value="c">
@@ -432,14 +593,7 @@ Returns 0 (`E_SUCCESS`) on success.
 H3Error maxFaceCount(H3Index h3, int *out);
 ```
 
-</TabItem>
-<TabItem value="python">
-
-:::note
-
-This function exists for memory management and is not exposed.
-
-:::
+Returns 0 (`E_SUCCESS`) on success.
 
 </TabItem>
 <TabItem value="java">
@@ -460,6 +614,22 @@ This function exists for memory management and is not exposed.
 :::
 
 </TabItem>
-</Tabs>
+<TabItem value="python">
 
-Returns the maximum number of icosahedron faces the given H3 index may intersect.
+:::note
+
+This function exists for memory management and is not exposed.
+
+:::
+
+</TabItem>
+<TabItem value="shell">
+
+:::note
+
+This function exists for memory management and is not exposed.
+
+:::
+
+</TabItem>
+</Tabs>

@@ -207,6 +207,8 @@ static BBox RES0_BBOXES[NUM_BASE_CELLS] = {
     {-1.20305471830087, -1.52480158339146, -0.60112285060716,
      2.53494381704943}};
 
+static BBox VALID_RANGE_BBOX = {M_PI_2, -M_PI_2, M_PI, -M_PI};
+
 /**
  * For a given cell, return its bounding box. If coverChildren is true, the bbox
  * will be guaranteed to contain its children at any finer resolution. Note that
@@ -248,7 +250,7 @@ H3Error cellToBBox(H3Index cell, BBox *out, bool coverChildren) {
         out->north = M_PI_2;
     }
 
-    // Cell that contains the north pole
+    // Cell that contains the south pole
     if (cell == SOUTH_POLE_CELLS[res]) {
         out->south = -M_PI_2;
     }
@@ -316,6 +318,46 @@ static H3Index nextCell(H3Index cell) {
 }
 
 /**
+ * Internal function - initialize the iterator without stepping to the first
+ * value
+ */
+static IterCellsPolygonCompact _iterInitPolygonCompact(
+    const GeoPolygon *polygon, int res, uint32_t flags) {
+    IterCellsPolygonCompact iter = {// Initialize output properties. The first
+                                    // valid cell will be set in iterStep
+                                    .cell = baseCellNumToCell(0),
+                                    .error = E_SUCCESS,
+                                    // Save input arguments
+                                    ._polygon = polygon,
+                                    ._res = res,
+                                    ._flags = flags,
+                                    ._bboxes = NULL,
+                                    ._started = false};
+
+    if (res < 0 || res > MAX_H3_RES) {
+        iterErrorPolygonCompact(&iter, E_RES_DOMAIN);
+        return iter;
+    }
+
+    H3Error flagErr = validatePolygonFlags(flags);
+    if (flagErr) {
+        iterErrorPolygonCompact(&iter, flagErr);
+        return iter;
+    }
+
+    // Initialize bounding boxes for polygon and any holes. Memory allocated
+    // here must be released through iterDestroyPolygonCompact
+    iter._bboxes = H3_MEMORY(calloc)((polygon->numHoles + 1), sizeof(BBox));
+    if (!iter._bboxes) {
+        iterErrorPolygonCompact(&iter, E_MEMORY_ALLOC);
+        return iter;
+    }
+    bboxesFromGeoPolygon(polygon, iter._bboxes);
+
+    return iter;
+}
+
+/**
  * Initialize a IterCellsPolygonCompact struct representing the sequence of
  * compact cells within the target polygon. The test for including edge cells is
  * defined by the polyfill mode passed in the `flags` argument.
@@ -338,35 +380,7 @@ static H3Index nextCell(H3Index cell) {
  */
 IterCellsPolygonCompact iterInitPolygonCompact(const GeoPolygon *polygon,
                                                int res, uint32_t flags) {
-    IterCellsPolygonCompact iter = {// Initialize output properties. The first
-                                    // valid cell will be set in iterStep
-                                    .cell = baseCellNumToCell(0),
-                                    .error = E_SUCCESS,
-                                    // Save input arguments
-                                    ._polygon = polygon,
-                                    ._res = res,
-                                    ._flags = flags,
-                                    ._bboxes = NULL,
-                                    ._started = false};
-
-    if (res < 0 || res > MAX_H3_RES) {
-        iterErrorPolygonCompact(&iter, E_RES_DOMAIN);
-        return iter;
-    }
-
-    if (flags != 0) {
-        iterErrorPolygonCompact(&iter, E_OPTION_INVALID);
-        return iter;
-    }
-
-    // Initialize bounding boxes for polygon and any holes. Memory allocated
-    // here must be released through iterDestroyPolygonCompact
-    iter._bboxes = H3_MEMORY(calloc)((polygon->numHoles + 1), sizeof(BBox));
-    if (!iter._bboxes) {
-        iterErrorPolygonCompact(&iter, E_MEMORY_ALLOC);
-        return iter;
-    }
-    bboxesFromGeoPolygon(polygon, iter._bboxes);
+    IterCellsPolygonCompact iter = _iterInitPolygonCompact(polygon, res, flags);
 
     // Start the iterator by taking the first step.
     // This is necessary to have a valid value after initialization.
@@ -406,23 +420,128 @@ void iterStepPolygonCompact(IterCellsPolygonCompact *iter) {
         iter->_started = true;
     }
 
+    // Short-circuit iteration for 0-vert polygon
+    if (iter->_polygon->geoloop.numVerts == 0) {
+        iterDestroyPolygonCompact(iter);
+        return;
+    }
+
+    ContainmentMode mode = FLAG_GET_CONTAINMENT_MODE(iter->_flags);
+
     while (cell) {
         int cellRes = H3_GET_RESOLUTION(cell);
 
         // Target res: Do a fine-grained check
         if (cellRes == iter->_res) {
-            // Check if the cell is in the polygon
-            // TODO: Handle other polyfill modes here
-            LatLng center;
-            H3Error centerErr = H3_EXPORT(cellToLatLng)(cell, &center);
-            if (NEVER(centerErr != E_SUCCESS)) {
-                iterErrorPolygonCompact(iter, centerErr);
-                return;
+            if (mode == CONTAINMENT_CENTER || mode == CONTAINMENT_OVERLAPPING ||
+                mode == CONTAINMENT_OVERLAPPING_BBOX) {
+                // Check if the cell center is inside the polygon
+                LatLng center;
+                H3Error centerErr = H3_EXPORT(cellToLatLng)(cell, &center);
+                if (centerErr != E_SUCCESS) {
+                    iterErrorPolygonCompact(iter, centerErr);
+                    return;
+                }
+                if (pointInsidePolygon(iter->_polygon, iter->_bboxes,
+                                       &center)) {
+                    // Set to next output
+                    iter->cell = cell;
+                    return;
+                }
             }
-            if (pointInsidePolygon(iter->_polygon, iter->_bboxes, &center)) {
-                // Set to next output
-                iter->cell = cell;
-                return;
+            if (mode == CONTAINMENT_OVERLAPPING ||
+                mode == CONTAINMENT_OVERLAPPING_BBOX) {
+                // For overlapping, we need to do a quick check to determine
+                // whether the polygon is wholly contained by the cell. We
+                // check the first polygon vertex, which if it is contained
+                // could also mean we simply intersect.
+
+                // Deferencing verts[0] is safe because we check numVerts above
+                LatLng firstVertex = iter->_polygon->geoloop.verts[0];
+
+                // We have to check whether the point is in the expected range
+                // first, because out-of-bounds values will yield false
+                // positives with latLngToCell
+                if (bboxContains(&VALID_RANGE_BBOX, &firstVertex)) {
+                    H3Index polygonCell;
+                    H3Error polygonCellErr = H3_EXPORT(latLngToCell)(
+                        &(iter->_polygon->geoloop.verts[0]), cellRes,
+                        &polygonCell);
+                    if (NEVER(polygonCellErr != E_SUCCESS)) {
+                        // This should be unreachable with the bbox check
+                        iterErrorPolygonCompact(iter, polygonCellErr);
+                        return;
+                    }
+                    if (polygonCell == cell) {
+                        // Set to next output
+                        iter->cell = cell;
+                        return;
+                    }
+                }
+            }
+            if (mode == CONTAINMENT_FULL || mode == CONTAINMENT_OVERLAPPING ||
+                mode == CONTAINMENT_OVERLAPPING_BBOX) {
+                CellBoundary boundary;
+                H3Error boundaryErr =
+                    H3_EXPORT(cellToBoundary)(cell, &boundary);
+                if (boundaryErr != E_SUCCESS) {
+                    iterErrorPolygonCompact(iter, boundaryErr);
+                    return;
+                }
+                BBox bbox;
+                H3Error bboxErr = cellToBBox(cell, &bbox, false);
+                if (NEVER(bboxErr != E_SUCCESS)) {
+                    // Should be unreachable - invalid cells would be caught in
+                    // the previous boundaryErr
+                    iterErrorPolygonCompact(iter, bboxErr);
+                    return;
+                }
+                // Check if the cell is fully contained by the polygon
+                if ((mode == CONTAINMENT_FULL ||
+                     mode == CONTAINMENT_OVERLAPPING_BBOX) &&
+                    cellBoundaryInsidePolygon(iter->_polygon, iter->_bboxes,
+                                              &boundary, &bbox)) {
+                    // Set to next output
+                    iter->cell = cell;
+                    return;
+                }
+                // For overlap, we've already checked for center point inclusion
+                // above; if that failed, we only need to check for line
+                // intersection
+                else if ((mode == CONTAINMENT_OVERLAPPING ||
+                          mode == CONTAINMENT_OVERLAPPING_BBOX) &&
+                         cellBoundaryCrossesPolygon(
+                             iter->_polygon, iter->_bboxes, &boundary, &bbox)) {
+                    // Set to next output
+                    iter->cell = cell;
+                    return;
+                }
+            }
+            if (mode == CONTAINMENT_OVERLAPPING_BBOX) {
+                // Get a bounding box containing all the cell's children, so
+                // this can work for the max size calculation
+                BBox bbox;
+                H3Error bboxErr = cellToBBox(cell, &bbox, true);
+                if (bboxErr) {
+                    iterErrorPolygonCompact(iter, bboxErr);
+                    return;
+                }
+                if (bboxOverlapsBBox(&iter->_bboxes[0], &bbox)) {
+                    CellBoundary bboxBoundary = bboxToCellBoundary(&bbox);
+                    if (
+                        // cell bbox contains the polygon
+                        bboxContainsBBox(&bbox, &iter->_bboxes[0]) ||
+                        // polygon contains cell bbox
+                        pointInsidePolygon(iter->_polygon, iter->_bboxes,
+                                           &bboxBoundary.verts[0]) ||
+                        // polygon crosses cell bbox
+                        cellBoundaryCrossesPolygon(iter->_polygon,
+                                                   iter->_bboxes, &bboxBoundary,
+                                                   &bbox)) {
+                        iter->cell = cell;
+                        return;
+                    }
+                }
             }
         }
 
@@ -438,13 +557,7 @@ void iterStepPolygonCompact(IterCellsPolygonCompact *iter) {
             if (bboxOverlapsBBox(&iter->_bboxes[0], &bbox)) {
                 // Quick check for possible containment
                 if (bboxContainsBBox(&iter->_bboxes[0], &bbox)) {
-                    // Convert bbox to cell boundary, CCW vertex order
-                    CellBoundary bboxBoundary = {
-                        .numVerts = 4,
-                        .verts = {{bbox.north, bbox.east},
-                                  {bbox.north, bbox.west},
-                                  {bbox.south, bbox.west},
-                                  {bbox.south, bbox.east}}};
+                    CellBoundary bboxBoundary = bboxToCellBoundary(&bbox);
                     // Do a fine-grained, more expensive check on the polygon
                     if (cellBoundaryInsidePolygon(iter->_polygon, iter->_bboxes,
                                                   &bboxBoundary, &bbox)) {
@@ -577,17 +690,92 @@ void iterDestroyPolygon(IterCellsPolygon *iter) {
  * zeroed memory, and fills it with the hexagons that are contained by
  * the GeoJSON-like data structure. Polygons are considered in Cartesian space.
  *
- * @param geoPolygon The geoloop and holes defining the relevant area
+ * @param polygon The geoloop and holes defining the relevant area
  * @param res The Hexagon resolution (0-15)
- * @param out The slab of zeroed memory to write to. Assumed to be big enough.
+ * @param flags Algorithm flags such as containment mode
+ * @param size Maximum number of indexes to write to `out`.
+ * @param out The slab of zeroed memory to write to. Must be at least of size
+ * `size`.
  */
 H3Error H3_EXPORT(polygonToCellsExperimental)(const GeoPolygon *polygon,
                                               int res, uint32_t flags,
-                                              H3Index *out) {
+                                              int64_t size, H3Index *out) {
     IterCellsPolygon iter = iterInitPolygon(polygon, res, flags);
     int64_t i = 0;
     for (; iter.cell; iterStepPolygon(&iter)) {
+        if (i >= size) {
+            iterDestroyPolygon(&iter);
+            return E_MEMORY_BOUNDS;
+        }
         out[i++] = iter.cell;
     }
+    return iter.error;
+}
+
+static int MAX_SIZE_CELL_THRESHOLD = 10;
+
+static double getAverageCellArea(int res) {
+    double hexAreaKm2;
+    H3_EXPORT(getHexagonAreaAvgKm2)(res, &hexAreaKm2);
+    return hexAreaKm2;
+}
+
+/**
+ * maxPolygonToCellsSize returns the number of cells to allocate space for
+ * when performing a polygonToCells on the given GeoJSON-like data structure.
+ * @param polygon A GeoJSON-like data structure indicating the poly to fill
+ * @param res Hexagon resolution (0-15)
+ * @param flags Bit mask of option flags
+ * @param out number of cells to allocate for
+ * @return 0 (E_SUCCESS) on success.
+ */
+H3Error H3_EXPORT(maxPolygonToCellsSizeExperimental)(const GeoPolygon *polygon,
+                                                     int res, uint32_t flags,
+                                                     int64_t *out) {
+    // Special case: 0-vertex polygon
+    if (polygon->geoloop.numVerts == 0) {
+        *out = 0;
+        return E_SUCCESS;
+    }
+
+    // Initialize the iterator without stepping, so we can adjust the res and
+    // flags (after they are validated by the initialization) before we start
+    IterCellsPolygonCompact iter = _iterInitPolygonCompact(polygon, res, flags);
+
+    if (iter.error) {
+        return iter.error;
+    }
+
+    // Ignore the requested flags and use the faster overlapping-bbox mode
+    iter._flags = CONTAINMENT_OVERLAPPING_BBOX;
+
+    // Get a (very) rough area of the polygon bounding box
+    BBox *polygonBBox = &iter._bboxes[0];
+    double polygonBBoxAreaKm2 =
+        bboxHeightRads(polygonBBox) * bboxWidthRads(polygonBBox) /
+        cos(fmin(fabs(polygonBBox->north), fabs(polygonBBox->south))) *
+        EARTH_RADIUS_KM * EARTH_RADIUS_KM;
+
+    // Determine the res for the size estimate, based on a (very) rough estimate
+    // of the number of cells at various resolutions that would fit in the
+    // polygon. All we need here is a general order of magnitude.
+    while (iter._res > 0 &&
+           polygonBBoxAreaKm2 / getAverageCellArea(iter._res - 1) >
+               MAX_SIZE_CELL_THRESHOLD) {
+        iter._res--;
+    }
+
+    // Now run the polyfill, counting the output in the target res.
+    // We have to take the first step outside the loop, to get the first
+    // valid output cell
+    iterStepPolygonCompact(&iter);
+
+    *out = 0;
+    int64_t childrenSize;
+    for (; iter.cell; iterStepPolygonCompact(&iter)) {
+        H3_EXPORT(cellToChildrenSize)(iter.cell, res, &childrenSize);
+        *out += childrenSize;
+    }
+
     return iter.error;
 }
