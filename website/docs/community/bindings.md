@@ -75,6 +75,10 @@ As a C library, bindings can be made to call H3 functions from different program
 
 - [wookay/H3.jl](https://github.com/wookay/H3.jl)
 
+## Kinetica
+
+- [H3 Functions](https://docs.kinetica.com/7.1/sql/query/#h3-functions)
+
 ## OCaml
 
 - [travisbrady/ocaml-h3](https://github.com/travisbrady/ocaml-h3)
@@ -100,6 +104,7 @@ As a C library, bindings can be made to call H3 functions from different program
 
 - [uber/h3-py](https://github.com/uber/h3-py)
 - [DahnJ/H3-Pandas](https://github.com/DahnJ/H3-Pandas)
+- [filimoa/h3-polars](https://github.com/Filimoa/polars-h3)
 
 ## R
 
@@ -126,6 +131,12 @@ As a C library, bindings can be made to call H3 functions from different program
 
 - [isaacbrodsky/h3-sqlite3](https://github.com/isaacbrodsky/h3-sqlite3)
 
+## SQL Server
+
+- [tbbuck/H3.net.SqlClr](https://github.com/tbbuck/H3.net.SqlClr)
+
 ## Spark
 
-- [kevinschaich/h3-pyspark](https://github.com/kevinschaich/h3-pyspark)
+- [jchotard/h3spark](https://github.com/JosephChotard/h3spark) (4.x)
+- [kevinschaich/h3-pyspark](https://github.com/kevinschaich/h3-pyspark) (3.x)
+

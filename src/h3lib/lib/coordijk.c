@@ -66,12 +66,12 @@ void _hex2dToCoordIJK(const Vec2d *v, CoordIJK *h) {
     a2 = fabsl(v->y);
 
     // first do a reverse conversion
-    x2 = a2 / M_SIN60;
+    x2 = a2 * M_RSIN60;
     x1 = a1 + x2 / 2.0;
 
     // check if we have the center of a hex
-    m1 = x1;
-    m2 = x2;
+    m1 = (int)x1;
+    m2 = (int)x2;
 
     // otherwise round correctly
     r1 = x1 - m1;
@@ -130,11 +130,11 @@ void _hex2dToCoordIJK(const Vec2d *v, CoordIJK *h) {
         {
             long long int axisi = h->j / 2;
             long long int diff = h->i - axisi;
-            h->i = h->i - 2.0 * diff;
+            h->i = (int)(h->i - 2.0 * diff);
         } else {
             long long int axisi = (h->j + 1) / 2;
             long long int diff = h->i - axisi;
-            h->i = h->i - (2.0 * diff + 1);
+            h->i = (int)(h->i - (2.0 * diff + 1));
         }
     }
 
@@ -345,8 +345,8 @@ H3Error _upAp7Checked(CoordIJK *ijk) {
         }
     }
 
-    ijk->i = (int)lround(((i * 3) - j) / 7.0);
-    ijk->j = (int)lround((i + (j * 2)) / 7.0);
+    ijk->i = (int)lround(((i * 3) - j) * M_ONESEVENTH);
+    ijk->j = (int)lround((i + (j * 2)) * M_ONESEVENTH);
     ijk->k = 0;
 
     // Expected not to be reachable, because max + min or max - min would need
@@ -393,8 +393,8 @@ H3Error _upAp7rChecked(CoordIJK *ijk) {
         }
     }
 
-    ijk->i = (int)lround(((i * 2) + j) / 7.0);
-    ijk->j = (int)lround(((j * 3) - i) / 7.0);
+    ijk->i = (int)lround(((i * 2) + j) * M_ONESEVENTH);
+    ijk->j = (int)lround(((j * 3) - i) * M_ONESEVENTH);
     ijk->k = 0;
 
     // Expected not to be reachable, because max + min or max - min would need
@@ -417,8 +417,8 @@ void _upAp7(CoordIJK *ijk) {
     int i = ijk->i - ijk->k;
     int j = ijk->j - ijk->k;
 
-    ijk->i = (int)lround((3 * i - j) / 7.0);
-    ijk->j = (int)lround((i + 2 * j) / 7.0);
+    ijk->i = (int)lround((3 * i - j) * M_ONESEVENTH);
+    ijk->j = (int)lround((i + 2 * j) * M_ONESEVENTH);
     ijk->k = 0;
     _ijkNormalize(ijk);
 }
@@ -434,8 +434,8 @@ void _upAp7r(CoordIJK *ijk) {
     int i = ijk->i - ijk->k;
     int j = ijk->j - ijk->k;
 
-    ijk->i = (int)lround((2 * i + j) / 7.0);
-    ijk->j = (int)lround((3 * j - i) / 7.0);
+    ijk->i = (int)lround((2 * i + j) * M_ONESEVENTH);
+    ijk->j = (int)lround((3 * j - i) * M_ONESEVENTH);
     ijk->k = 0;
     _ijkNormalize(ijk);
 }

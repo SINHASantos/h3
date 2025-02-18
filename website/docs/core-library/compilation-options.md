@@ -35,6 +35,12 @@ Whether to build the parts of the [test suite](./testing) that exercise the [H3_
 
 Whether to build the [benchmark suite](./testing#benchmarks).
 
+## BUILD_COUNTRY_BENCHMARKS
+
+Whether to build benchmarks that use [Natural Earth](https://github.com/nvkelso/natural-earth-vector/) geometries.
+
+The geometries will be downloaded at build time using Node.
+
 ## BUILD_FILTERS
 
 Whether to build the [H3 command line filter](./filters) executables.
@@ -71,7 +77,7 @@ but is rather the documentation for the internal C library functions.
 
 ## ENABLE_FORMAT
 
-Whether to enable using clang-format-11 to format source files before building. This should be enabled
+Whether to enable using clang-format-14 to format source files before building. This should be enabled
 before submitting patches for H3 as continuous integration will fail if the formatting does not match.
 
 Only this version of clang-format should be used to format the sources as new releases of clang-format
@@ -95,10 +101,15 @@ Used for [renaming the public API](./usage#function-renaming).
 
 If enabled, CMake will print which CTest test case corresponds to which input file.
 
+## ENABLE_WARNINGS
+
+Whether to enable all compiler warnings. (i.e. [`-Wall`](https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wall))
+
 ## WARNINGS_AS_ERRORS
 
 Whether to treat compiler warnings as errors. While a useful tool for ensuring software quality, this should not be enabled
-for production builds as compiler warnings can change unexpectedly between versions.
+for production builds as compiler warnings can change unexpectedly between versions. This is intended to be used with
+`ENABLE_WARNINGS` on.
 
 ## WRAP_VALGRIND
 

@@ -6,10 +6,25 @@ The public API of this library consists of the functions declared in file
 [h3api.h.in](./src/h3lib/include/h3api.h.in).
 
 ## [Unreleased]
+
 ### Changed
-- Replace internal algorithm for `polygonToCells` with a new version that is more memory-efficient (#785)
+- Moved `ContainmentMode` enum for `polygonToCellsExperimental` to `h3api.h`. (#958)
+
+## [4.2.0] - 2024-12-04
+### Added
+- Added experimental new algorithm for `polygonToCells`, called `polygonToCellsExperimental`, that supports more containment flags and is more memory-efficient (#785, #800, #947)
+- `h3` binary for shell scripts ready for use (#818, #826, #846, #923, #924, #931, #933)
+
+### Fixed
+- Fixed compacting all or many resolution 1 cells (#919)
+
+### Changed
+- `compactCells` internally uses int64 for array indexing. (#920)
 - Reorganize tests into public / internal. (#762)
-- Performance enhancement for aarch64, should not affect other platforms (#790, #792)
+- Performance enhancement for aarch64, may improve other platforms (#790, #792, #852, #905, #913)
+- `clang-format` upgraded to version 14. (#834)
+- Fixed tests that incorrectly did not test resolution 15. (#820)
+- Use `CMAKE_INSTALL_LIBDIR` when choosing where to install library files. (#819)
 
 ## [4.1.0] - 2023-01-18
 ### Added
